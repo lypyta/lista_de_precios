@@ -9,7 +9,7 @@ import os # Importamos 'os' para verificar si el archivo existe
 GOOGLE_SHEETS_URL = 'https://docs.google.com/spreadsheets/d/1ZvUejwjZXwtXhJgdP-hS6u5DH7tXUwbu/export?format=csv&gid=1344588226'
 
 # --- Nombre del Archivo del Logo ---
-LOGO_FILE_NAME = 'LOGO SIN FONDO.png' # ¡Usamos el nombre exacto que indicaste!
+LOGO_FILE_NAME = 'logo sin fondo.png' # ¡Usamos el nombre exacto que indicaste!
 
 # --- Configuración inicial de la página de Streamlit ---
 st.set_page_config(layout="wide")
