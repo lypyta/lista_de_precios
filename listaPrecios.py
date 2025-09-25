@@ -30,7 +30,7 @@ st.markdown("---")
 @st.cache_data
 def load_and_process_prices_data(url):
     try:
-        st.info('Cargando y procesando datos de la lista de precios...')
+       
         response = requests.get(url)
         response.raise_for_status() 
 
@@ -71,7 +71,7 @@ def load_and_process_prices_data(url):
                 df[col] = df[col].astype(str).str.replace('$', '', regex=False).str.replace(',', '', regex=False).str.strip()
                 df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
 
-        st.success('✅ ¡Datos de precios cargados y procesados con éxito!')
+      
         return df
 
     except Exception as e:
