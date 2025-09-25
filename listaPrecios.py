@@ -20,47 +20,43 @@ def load_and_process_prices_data(url):
         response = requests.get(url)
         response.raise_for_status() 
 
-        # Leer el archivo como CSV (más robusto)
+        # Leer el archivo como CSV
         df = pd.read_csv(io.StringIO(response.content.decode('utf-8')))
 
         # 1. Limpiar espacios en los nombres de las columnas detectadas por Pandas
         df.columns = df.columns.str.strip()
         
-        # DEBUG: Mostrar las columnas detectadas para que puedas verificar
-        st.write("Columnas detectadas por Pandas (revisa que coincidan con tu Excel):", df.columns.tolist())
-        
-        # 2. Mapeo de columnas basado en los 8 nombres que confirmaste (usando nombres limpios para el mapeo)
-        #    Si tu Excel tiene nombres con espacios o caracteres especiales, Pandas los simplifica en el CSV.
+        # 2. Mapeo de las 8 columnas finales que confirmaste
         column_mapping = {
             'CATEGORIA': 'Categoría',
             'DESCRIPCION': 'Descripción',
             'UNIDAD': 'Unidad',
             'PRECIO DETALLE': 'Precio Detalle',
             'PRECIO POR MAYOR': 'Precio por Mayor',
-            'MAYOR DESDE': 'Cant. Mín. Mayor',       # Asumiendo que esta es la columna 'DESDE' del precio por mayor
+            'MAYOR DESDE': 'Cant. Mín. Mayor',       
             'PRECIO DISTRIBUIDOR': 'Precio Distribuidor',
-            'DISTRIBUIDOR DESDE': 'Cant. Mín. Distribuidor' # Asumiendo que esta es la segunda columna 'DESDE'
+            'DISTRIBUIDOR DESDE': 'Cant. Mín. Distribuidor' 
         }
-        
-        # Intenta mapear con los nombres exactos que nos diste, además de las posibles variaciones:
-        backup_mapping = {
-            'PRECIO POR: MAYOR': 'Precio por Mayor', # Nombre de imagen anterior
-            'DESDE': 'Cant. Mín. Mayor',             # Nombre de imagen anterior
-            'DESDE.1': 'Cant. Mín. Distribuidor'     # Nombre de imagen anterior
-        }
-
-        # Combinar los mapeos. Los nombres exactos que diste tienen prioridad
-        final_mapping = {**backup_mapping, **column_mapping}
         
         # 3. Eliminar filas sin categoría
         df.dropna(subset=['CATEGORIA'], inplace=True)
         
         # 4. Seleccionar y renombrar las columnas existentes
-        existing_cols = {k: v for k, v in final_mapping.items() if k in df.columns}
-        df = df[list(existing_cols.keys())].rename(columns=existing_cols)
+        #    Usamos una lista estricta para asegurar que solo se muestren las 8 columnas importantes.
+        expected_cols_list = list(column_mapping.keys())
+        
+        # Verificar si faltan columnas cruciales
+        missing_cols = [col for col in expected_cols_list if col not in df.columns]
+        if missing_cols:
+             st.warning(f"Advertencia: Faltan las siguientes columnas en tu archivo: {', '.join(missing_cols)}")
+             # Usar solo las columnas que sí se encontraron
+             existing_cols = {k: v for k, v in column_mapping.items() if k in df.columns}
+        else:
+             existing_cols = column_mapping
+
+        df = df[[k for k in existing_cols.keys()]].rename(columns=existing_cols)
         
         # 5. Convertir columnas numéricas, limpiando $ y comas
-        #    Solo incluimos las columnas cuyo nombre final incluye 'Precio' o 'Cant. Mín.'
         price_and_qty_cols = [col for col in df.columns if 'Precio' in col or 'Cant. Mín.' in col]
 
         for col in price_and_qty_cols:
@@ -83,24 +79,3 @@ st.subheader('Filtros de Búsqueda')
 
 # Crea un selectbox para filtrar por categoría
 categorias_disponibles = ['Todas'] + sorted(df_precios['Categoría'].unique().tolist())
-categoria_seleccionada = st.selectbox('Filtrar por Categoría', categorias_disponibles)
-
-st.markdown("---")
-
-# --- Filtrar y Mostrar la Lista de Precios ---
-if categoria_seleccionada == 'Todas':
-    df_filtrado_precios = df_precios.copy()
-else:
-    df_filtrado_precios = df_precios[df_precios['Categoría'] == categoria_seleccionada].copy()
-
-# Mensaje si no hay datos después de filtrar
-if df_filtrado_precios.empty:
-    st.warning("No hay productos para la categoría seleccionada.")
-else:
-    st.subheader(f'Lista de Precios - {categoria_seleccionada}')
-    
-    # Muestra la tabla filtrada con todas las columnas
-    st.dataframe(df_filtrado_precios, use_container_width=True, hide_index=True)
-
-st.markdown("---")
-st.success("¡Dashboard de Lista de Precios listo!")
