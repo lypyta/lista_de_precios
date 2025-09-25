@@ -3,10 +3,9 @@ import pandas as pd
 import io
 import requests
 
-# --- Configuración de la URL de Google Drive (¡VERIFICA ESTE ENLACE!) ---
-# Si obtuviste un enlace de 'Publicar en la web' como Excel (.xlsx), pégalo aquí.
-# Usamos el que generamos basado en tu ID:
-GOOGLE_SHEETS_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ7X3A59hRnDO-A67ylZrigrrbAMN2Gd2Zf_3q80DyPKz2bbTJvGe836B-woafWKg/pub?output=xlsx&gid=1344588226'
+# --- Configuración de la URL de Google Drive (¡CORREGIDA con tu ID de documento!) ---
+# Usamos la sintaxis de exportación CSV con la ID de documento 1ZvUejwjZXwtXhJgdP-hS6u5DH7tXUwbu y GID 1344588226
+GOOGLE_SHEETS_URL = 'https://docs.google.com/spreadsheets/d/1ZvUejwjZXwtXhJgdP-hS6u5DH7tXUwbu/export?format=csv&gid=1344588226'
 
 # --- Configuración inicial de la página de Streamlit ---
 st.set_page_config(layout="wide")
@@ -17,19 +16,17 @@ st.markdown("---")
 @st.cache_data
 def load_and_process_prices_data(url):
     try:
-        st.info('Cargando y procesando datos de la lista de precios desde Google Drive...')
+        st.info('Cargando y procesando datos de la lista de precios (usando CSV) desde Google Drive...')
         response = requests.get(url)
-        # Esto lanzará una excepción si el estado es 4xx o 5xx (como el 400 que viste)
         response.raise_for_status() 
 
-        # Leer el archivo Excel, asumiendo que el encabezado está en la primera fila (header=0)
-        df = pd.read_excel(io.BytesIO(response.content), header=0, engine='openpyxl')
+        # Leer el archivo como CSV (más robusto que XLSX)
+        df = pd.read_csv(io.StringIO(response.content.decode('utf-8')))
 
         # 1. Limpiar espacios en los nombres de las columnas detectadas por Pandas
         df.columns = df.columns.str.strip()
         
-        # 2. Mapeo de columnas basado en los títulos de tu Excel
-        #    Asumimos que las columnas son: CATEGORIA, DESCRIPCION, UNIDAD, PRECIO DETALLE, PRECIO POR: MAYOR, DESDE, PRECIO DISTRIBUIDOR, DESDE.1
+        # 2. Mapeo de columnas basado en los títulos de tu Excel (8 columnas)
         column_mapping = {
             'CATEGORIA': 'Categoría',
             'DESCRIPCION': 'Descripción',
@@ -38,7 +35,7 @@ def load_and_process_prices_data(url):
             'PRECIO POR: MAYOR': 'Precio por Mayor',
             'DESDE': 'Cant. Mín. Mayor',
             'PRECIO DISTRIBUIDOR': 'Precio Distribuidor',
-            'DESDE.1': 'Cant. Mín. Distribuidor' # Asumiendo que esta es la segunda columna DESDE
+            'DESDE.1': 'Cant. Mín. Distribuidor' 
         }
         
         # 3. Eliminar filas sin categoría
@@ -59,11 +56,11 @@ def load_and_process_prices_data(url):
         return df
 
     except requests.exceptions.RequestException as req_err:
-        st.error(f"❌ Error de conexión al cargar el archivo. El error 400 indica que la URL de publicación no es accesible. SOLUCIÓN: Asegúrate de que el archivo esté compartido como 'Cualquier persona con el enlace' y que la URL sea la de exportación .xlsx.")
+        st.error(f"❌ Error de conexión al cargar el archivo. Verifica la configuración de **Compartir** en Google Sheets y asegúrate de que dice **'Cualquier persona con el enlace'**.")
         st.error(f"Detalles: {req_err}")
         st.stop()
     except Exception as e:
-        st.error(f"❌ Error inesperado al leer o procesar el archivo. Asegúrate de que el encabezado de tu Excel esté en la primera fila.")
+        st.error(f"❌ Error inesperado al leer o procesar el archivo. Asegúrate de que el encabezado de tu Excel esté en la primera fila y las columnas sean correctas.")
         st.error(f"Detalles: {e}")
         st.stop()
 
