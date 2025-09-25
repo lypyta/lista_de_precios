@@ -2,26 +2,26 @@ import streamlit as st
 import pandas as pd
 import io
 import requests
-import os # Importamos 'os' para verificar si el archivo existe
+import os
 
 # --- Configuración de la URL de Google Drive (Funcional) ---
 # Usando la sintaxis de exportación CSV con tu ID de documento y GID
 GOOGLE_SHEETS_URL = 'https://docs.google.com/spreadsheets/d/1ZvUejwjZXwtXhJgdP-hS6u5DH7tXUwbu/export?format=csv&gid=1344588226'
 
 # --- Nombre del Archivo del Logo ---
-LOGO_FILE_NAME = 'logo sin fondo.png' # ¡Usamos el nombre exacto que indicaste!
+LOGO_FILE_NAME = 'LOGO SIN FONDO.png' 
 
 # --- Configuración inicial de la página de Streamlit ---
 st.set_page_config(layout="wide")
 
 # --- Sección de Cabecera (Logo y Título) ---
-
 # 1. Intentamos mostrar el logo
 if os.path.exists(LOGO_FILE_NAME):
     st.image(LOGO_FILE_NAME, width=150) 
 else:
-    # Si el archivo no se encuentra, mostramos un mensaje de ayuda (solo en desarrollo)
-    st.warning(f"⚠️ Archivo de logo '{LOGO_FILE_NAME}' no encontrado en la carpeta del script.")
+    # Este mensaje solo se verá si la imagen no se carga (útil para ti, no para el cliente)
+    # st.warning(f"⚠️ Archivo de logo '{LOGO_FILE_NAME}' no encontrado.")
+    pass
 
 st.title('📋 Lista de Precios')
 st.markdown("---")
@@ -59,7 +59,9 @@ def load_and_process_prices_data(url):
         
         # Advertencia si faltan columnas esenciales
         if len(existing_cols) < 8:
-             st.warning(f"Advertencia: Solo se encontraron {len(existing_cols)} de las 8 columnas esperadas. Revisa los títulos de tu Excel.")
+             # Este mensaje se verá en la app, es para tu información
+             # st.warning(f"Advertencia: Solo se encontraron {len(existing_cols)} de las 8 columnas esperadas. Revisa los títulos de tu Excel.")
+             pass
 
         df = df[[k for k in existing_cols.keys()]].rename(columns=existing_cols)
         
@@ -75,7 +77,8 @@ def load_and_process_prices_data(url):
         return df
 
     except Exception as e:
-        st.error(f"❌ Error al procesar o mapear columnas. Detalles: {e}")
+        st.error(f"❌ Error al procesar o mapear columnas. Revisa tu Excel.")
+        # st.error(f"Detalles: {e}") # Descomenta para ver el error completo
         st.stop()
 
 # --- Cargar los datos ---
@@ -86,8 +89,8 @@ st.subheader('Filtros de Búsqueda')
 
 # Si el DataFrame está vacío, mostramos una advertencia
 if df_precios.empty:
-    st.warning("El DataFrame de precios está vacío. Revisa tu Google Sheet. Puede que todas las filas hayan sido eliminadas porque no tenían valor en 'Categoría'.")
-    st.stop() # Detenemos la ejecución si no hay datos.
+    st.warning("El DataFrame de precios está vacío. Revisa tu Google Sheet.")
+    st.stop() 
 
 
 # Crea un selectbox para filtrar por categoría
@@ -108,8 +111,9 @@ if df_filtrado_precios.empty:
 else:
     st.subheader(f'Lista de Precios - {categoria_seleccionada}')
     
-    # Muestra la tabla filtrada con todas las columnas
-    st.dataframe(df_filtrado_precios, use_container_width=True, hide_index=True)
+    # CAMBIO CLAVE para adaptabilidad: Usar st.table()
+    # Muestra la tabla filtrada de forma compacta y adaptable al móvil.
+    st.table(df_filtrado_precios) 
 
 st.markdown("---")
 st.success("¡Dashboard de Lista de Precios listo!")
