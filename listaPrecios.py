@@ -3,9 +3,10 @@ import pandas as pd
 import io
 import requests
 
-# --- Configuración de la URL de Google Drive (¡CORREGIDA!) ---
-# Usa el ID de tu archivo y el GID de la hoja específica
-GOOGLE_SHEETS_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ7X3A59hRnDO-A67ylZrigrrbAMN2Gd2Zf_3q80DyPKz2bbTJvGe836B-woafWKg/pub?output=xlsx'
+# --- Configuración de la URL de Google Drive (¡VERIFICA ESTE ENLACE!) ---
+# Si obtuviste un enlace de 'Publicar en la web' como Excel (.xlsx), pégalo aquí.
+# Usamos el que generamos basado en tu ID:
+GOOGLE_SHEETS_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ7X3A59hRnDO-A67ylZrigrrbAMN2Gd2Zf_3q80DyPKz2bbTJvGe836B-woafWKg/pub?output=xlsx&gid=1344588226'
 
 # --- Configuración inicial de la página de Streamlit ---
 st.set_page_config(layout="wide")
@@ -18,7 +19,8 @@ def load_and_process_prices_data(url):
     try:
         st.info('Cargando y procesando datos de la lista de precios desde Google Drive...')
         response = requests.get(url)
-        response.raise_for_status()
+        # Esto lanzará una excepción si el estado es 4xx o 5xx (como el 400 que viste)
+        response.raise_for_status() 
 
         # Leer el archivo Excel, asumiendo que el encabezado está en la primera fila (header=0)
         df = pd.read_excel(io.BytesIO(response.content), header=0, engine='openpyxl')
@@ -26,18 +28,17 @@ def load_and_process_prices_data(url):
         # 1. Limpiar espacios en los nombres de las columnas detectadas por Pandas
         df.columns = df.columns.str.strip()
         
-        # 2. Mapeo de columnas basado en los títulos EXACTOS de tu Excel
-        #    Pandas a veces renombra columnas repetidas agregando .1, .2, etc.
-        #    Usamos 'Precio por: Mayor' y 'DESDE' como nombres de columna sin caracteres especiales.
+        # 2. Mapeo de columnas basado en los títulos de tu Excel
+        #    Asumimos que las columnas son: CATEGORIA, DESCRIPCION, UNIDAD, PRECIO DETALLE, PRECIO POR: MAYOR, DESDE, PRECIO DISTRIBUIDOR, DESDE.1
         column_mapping = {
             'CATEGORIA': 'Categoría',
             'DESCRIPCION': 'Descripción',
             'UNIDAD': 'Unidad',
             'PRECIO DETALLE': 'Precio Detalle',
             'PRECIO POR: MAYOR': 'Precio por Mayor',
-            'DESDE': 'Cantidad Mínima Mayor',
+            'DESDE': 'Cant. Mín. Mayor',
             'PRECIO DISTRIBUIDOR': 'Precio Distribuidor',
-            'DESDE.1': 'Cantidad Mínima Distribuidor' # Asumiendo que esta es la segunda columna DESDE
+            'DESDE.1': 'Cant. Mín. Distribuidor' # Asumiendo que esta es la segunda columna DESDE
         }
         
         # 3. Eliminar filas sin categoría
@@ -48,7 +49,7 @@ def load_and_process_prices_data(url):
         df = df[list(existing_cols.keys())].rename(columns=existing_cols)
         
         # 5. Convertir columnas numéricas, limpiando $ y comas
-        price_and_qty_cols = ['Precio Detalle', 'Precio por Mayor', 'Cantidad Mínima Mayor', 'Precio Distribuidor', 'Cantidad Mínima Distribuidor']
+        price_and_qty_cols = ['Precio Detalle', 'Precio por Mayor', 'Cant. Mín. Mayor', 'Precio Distribuidor', 'Cant. Mín. Distribuidor']
         for col in price_and_qty_cols:
             if col in df.columns:
                 df[col] = df[col].astype(str).str.replace('$', '', regex=False).str.replace(',', '', regex=False).str.strip()
@@ -58,11 +59,11 @@ def load_and_process_prices_data(url):
         return df
 
     except requests.exceptions.RequestException as req_err:
-        st.error(f"❌ Error de conexión al cargar el archivo. Verifica el enlace y permisos de Drive (debe ser 'Cualquiera con el enlace' como lector).")
+        st.error(f"❌ Error de conexión al cargar el archivo. El error 400 indica que la URL de publicación no es accesible. SOLUCIÓN: Asegúrate de que el archivo esté compartido como 'Cualquier persona con el enlace' y que la URL sea la de exportación .xlsx.")
         st.error(f"Detalles: {req_err}")
         st.stop()
     except Exception as e:
-        st.error(f"❌ Error inesperado al leer o procesar el archivo. ¿Tu Excel tiene 8 columnas con esos nombres?")
+        st.error(f"❌ Error inesperado al leer o procesar el archivo. Asegúrate de que el encabezado de tu Excel esté en la primera fila.")
         st.error(f"Detalles: {e}")
         st.stop()
 
