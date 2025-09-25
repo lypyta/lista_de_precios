@@ -1,12 +1,11 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
 import io
 import requests
 
-# --- Configuración de la URL de Google Drive ---
-# ASEGÚRATE DE CAMBIAR ESTA URL POR LA DE TU HOJA DE PRECIOS
-GOOGLE_SHEETS_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSNRv2kzy2qIDvRbljlj5nHEqbzSYhcZF9oqklzmmt_1-hQfO8Mjf4ZdvmwSdXt9A/pub?output=xlsx'
+# --- Configuración de la URL de Google Drive (¡CORREGIDA!) ---
+# Usa el ID de tu archivo y el GID de la hoja específica
+GOOGLE_SHEETS_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ7X3A59hRnDO-A67ylZrigrrbAMN2Gd2Zf_3q80DyPKz2bbTJvGe836B-woafWKg/pub?output=xlsx&gid=1344588226'
 
 # --- Configuración inicial de la página de Streamlit ---
 st.set_page_config(layout="wide")
@@ -24,48 +23,46 @@ def load_and_process_prices_data(url):
         # Leer el archivo Excel, asumiendo que el encabezado está en la primera fila (header=0)
         df = pd.read_excel(io.BytesIO(response.content), header=0, engine='openpyxl')
 
-        # Opcional: Limpiar espacios en los nombres de las columnas para evitar errores
+        # 1. Limpiar espacios en los nombres de las columnas detectadas por Pandas
         df.columns = df.columns.str.strip()
-
-        # Muestra al usuario los nombres de las columnas que el script detectó en su archivo
-        st.info(f"Columnas detectadas en tu archivo: {df.columns.tolist()}")
-
-        # Seleccionar y renombrar las columnas clave que vas a mostrar
+        
+        # 2. Mapeo de columnas basado en los títulos EXACTOS de tu Excel
+        #    Pandas a veces renombra columnas repetidas agregando .1, .2, etc.
+        #    Usamos 'Precio por: Mayor' y 'DESDE' como nombres de columna sin caracteres especiales.
         column_mapping = {
             'CATEGORIA': 'Categoría',
             'DESCRIPCION': 'Descripción',
             'UNIDAD': 'Unidad',
-            'PRECIO POR DETALLE': 'Precio por Detalle',
+            'PRECIO DETALLE': 'Precio Detalle',
             'PRECIO POR: MAYOR': 'Precio por Mayor',
-            'DESDE?': 'Cantidad Mínima', # Asumiendo que esta es la cantidad para el precio por mayor
+            'DESDE': 'Cantidad Mínima Mayor',
             'PRECIO DISTRIBUIDOR': 'Precio Distribuidor',
-            # Si hay otra columna "DESDE?", asegúrate de que el nombre sea único en el mapeo
-            'DESDE?.1': 'Cantidad Mínima Distribuidor' # Por si hay otra columna igual
+            'DESDE.1': 'Cantidad Mínima Distribuidor' # Asumiendo que esta es la segunda columna DESDE
         }
         
-        # Eliminar las filas que no tienen una CATEGORIA, ya que no son productos válidos
+        # 3. Eliminar filas sin categoría
         df.dropna(subset=['CATEGORIA'], inplace=True)
         
-        # Asegurarse de que las columnas mapeadas existan en el DataFrame antes de seleccionarlas
+        # 4. Seleccionar y renombrar las columnas existentes
         existing_cols = {k: v for k, v in column_mapping.items() if k in df.columns}
         df = df[list(existing_cols.keys())].rename(columns=existing_cols)
-
-        # Convertir las columnas de precios y cantidades a numérico, eliminando símbolos y comas
-        price_and_qty_cols = ['Precio por Detalle', 'Precio por Mayor', 'Cantidad Mínima', 'Precio Distribuidor', 'Cantidad Mínima Distribuidor']
+        
+        # 5. Convertir columnas numéricas, limpiando $ y comas
+        price_and_qty_cols = ['Precio Detalle', 'Precio por Mayor', 'Cantidad Mínima Mayor', 'Precio Distribuidor', 'Cantidad Mínima Distribuidor']
         for col in price_and_qty_cols:
             if col in df.columns:
-                df[col] = df[col].astype(str).str.replace('$', '').str.replace(',', '').str.strip()
+                df[col] = df[col].astype(str).str.replace('$', '', regex=False).str.replace(',', '', regex=False).str.strip()
                 df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
 
         st.success('✅ ¡Datos de precios cargados y procesados con éxito!')
         return df
 
     except requests.exceptions.RequestException as req_err:
-        st.error(f"❌ Error de conexión al cargar el archivo. Verifica el enlace y permisos de Drive.")
+        st.error(f"❌ Error de conexión al cargar el archivo. Verifica el enlace y permisos de Drive (debe ser 'Cualquiera con el enlace' como lector).")
         st.error(f"Detalles: {req_err}")
         st.stop()
     except Exception as e:
-        st.error(f"❌ Error inesperado al leer o procesar el archivo. Asegúrate que sea un Excel válido y la estructura de columnas sea la esperada.")
+        st.error(f"❌ Error inesperado al leer o procesar el archivo. ¿Tu Excel tiene 8 columnas con esos nombres?")
         st.error(f"Detalles: {e}")
         st.stop()
 
@@ -97,4 +94,4 @@ else:
     st.dataframe(df_filtrado_precios, use_container_width=True, hide_index=True)
 
 st.markdown("---")
-st.success("¡Dashboard de Lista de Precios actualizado!")
+st.success("¡Dashboard de Lista de Precios listo!")
