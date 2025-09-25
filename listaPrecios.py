@@ -5,7 +5,7 @@ import requests
 
 # --- Configuración de la URL de Google Drive (¡CORREGIDA!) ---
 # Usa el ID de tu archivo y el GID de la hoja específica
-GOOGLE_SHEETS_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ7X3A59hRnDO-A67ylZrigrrbAMN2Gd2Zf_3q80DyPKz2bbTJvGe836B-woafWKg/pub?output=xlsx&gid=1344588226'
+GOOGLE_SHEETS_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ7X3A59hRnDO-A67ylZrigrrbAMN2Gd2Zf_3q80DyPKz2bbTJvGe836B-woafWKg/pub?output=xlsx'
 
 # --- Configuración inicial de la página de Streamlit ---
 st.set_page_config(layout="wide")
